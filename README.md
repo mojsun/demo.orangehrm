@@ -60,3 +60,6 @@ open tests/data/test_matrix.csv
 
 ### License
 MIT
+
+### Author
+Mozhdeh Khorashahi © 2025. See `LICENSE` for terms.

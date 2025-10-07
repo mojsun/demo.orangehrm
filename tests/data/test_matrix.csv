@@ -1,0 +1,10 @@
+Area,Scenario ID,Scenario (Given/When/Then),Priority/Marker,Automated?,Test File,Test Name
+Login,LOGIN-001,Given I am on the login page When I log in with valid Admin/admin123 Then I land on the dashboard,smoke,Yes,tests/e2e/test_login.py,test_login_success
+Login,LOGIN-002,Given I am on the login page When I log in with invalid credentials Then I see an error message,negative,Yes,tests/e2e/test_login.py,test_login_negative (parametrized)
+Login,LOGIN-003,Given I am logged in When I log out Then I return to the login page,smoke,Yes,tests/e2e/test_login.py,test_logout_returns_to_login
+PIM,PIM-001,Given I am logged in When I add an employee with first and last name Then Personal Details page loads,smoke; pim,Yes,tests/e2e/test_pim.py,test_add_employee_minimal
+PIM,PIM-002,Given I am logged in When I search for an employee by name Then I see matching results,smoke; pim,Yes,tests/e2e/test_pim.py,test_search_employee_by_name
+PIM,PIM-003,Given I am logged in When I edit an employee’s last name Then I see the updated value,regression; pim,No,,
+PIM,PIM-004,Given I am logged in When I delete an employee Then I no longer see the employee in search results,regression; pim,Yes,tests/e2e/test_pim.py,test_delete_employee
+PIM,PIM-005,Given I am on Add Employee When I leave required fields empty Then I see validation messages,negative; pim,Yes,tests/e2e/test_pim.py,test_add_employee_required_field_validation
+

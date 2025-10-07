@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+
+# Reports & artifacts
+report.html
+artifacts/
+reports/
+
+# OS
+.DS_Store
+

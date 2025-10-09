@@ -3,6 +3,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+import time
 
 
 class OrangePIMPage:
@@ -12,12 +13,14 @@ class OrangePIMPage:
     MIDDLE_NAME = (By.NAME, "middleName")
     LAST_NAME = (By.NAME, "lastName")
     PERSONAL_LAST_NAME_INPUT = (By.XPATH, "//label[normalize-space()='Last Name']/../following-sibling::div//input")
+    PERSONAL_EMP_ID_INPUT = (By.XPATH, "//label[normalize-space()='Employee Id']/../following-sibling::div//input")
     EDIT_BUTTON = (By.XPATH, "//button[normalize-space()='Edit']")
     SAVE_BUTTON = (By.CSS_SELECTOR, "button[type='submit']")
     SAVE_TEXT_BUTTON = (By.XPATH, "//button[normalize-space()='Save']")
     PERSONAL_DETAILS_HEADER = (By.XPATH, "//h6[normalize-space()='Personal Details']")
     ADD_EMPLOYEE_HEADER = (By.XPATH, "//h6[normalize-space()='Add Employee']")
     EMPLOYEE_NAME_INPUT = (By.XPATH, "//label[normalize-space()='Employee Name']/../following-sibling::div//input")
+    EMPLOYEE_ID_INPUT = (By.XPATH, "//label[normalize-space()='Employee Id']/../following-sibling::div//input")
     SEARCH_BUTTON = (By.XPATH, "//button[normalize-space()='Search']")
     RESULT_ROWS = (By.CSS_SELECTOR, "div.oxd-table-body div.oxd-table-card")
     ROW_CHECKBOX_WRAPPERS = (By.CSS_SELECTOR, "div.oxd-table-body div.oxd-table-card div.oxd-checkbox-wrapper")
@@ -76,24 +79,52 @@ class OrangePIMPage:
         # Ensure we are on the PIM page
         self.wait.until(EC.visibility_of_element_located(self.ADD_BUTTON))
         self.wait.until(EC.visibility_of_element_located(self.EMPLOYEE_NAME_INPUT))
-        name_input = self.driver.find_element(*self.EMPLOYEE_NAME_INPUT)
-        name_input.clear()
-        name_input.send_keys(full_name)
-        # If autocomplete appears, select first option; otherwise press Enter
-        try:
-            self.wait.until(EC.visibility_of_any_elements_located(self.AUTOCOMPLETE_OPTIONS))
-            self.driver.find_elements(*self.AUTOCOMPLETE_OPTIONS)[0].click()
-        except Exception:
-            name_input.send_keys(Keys.ENTER)
-        self.driver.find_element(*self.SEARCH_BUTTON).click()
-        self.wait.until(EC.presence_of_all_elements_located(self.RESULT_ROWS))
+        def do_search():
+            name_input = self.driver.find_element(*self.EMPLOYEE_NAME_INPUT)
+            try:
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", name_input)
+            except Exception:
+                pass
+            name_input.clear()
+            name_input.send_keys(full_name)
+            # If autocomplete appears, select first option; otherwise press Enter
+            try:
+                self.wait.until(EC.visibility_of_any_elements_located(self.AUTOCOMPLETE_OPTIONS))
+                self.driver.find_elements(*self.AUTOCOMPLETE_OPTIONS)[0].click()
+            except Exception:
+                name_input.send_keys(Keys.ENTER)
+            self.wait.until(EC.element_to_be_clickable(self.SEARCH_BUTTON)).click()
+
+        # Try search up to 2 times in case indexing is delayed
+        attempts = 0
+        while attempts < 2:
+            do_search()
+            try:
+                self.wait.until(EC.any_of(
+                    EC.presence_of_all_elements_located(self.RESULT_ROWS),
+                    EC.visibility_of_element_located(self.NO_ROWS_PLACEHOLDER),
+                ))
+                break
+            except Exception:
+                attempts += 1
+                time.sleep(1)
         return self
 
     def assert_search_results_contains(self, expected_name: str):
-        self.wait.until(EC.presence_of_all_elements_located(self.RESULT_ROWS))
+        # Wait for either rows or placeholder
+        try:
+            self.wait.until(EC.any_of(
+                EC.presence_of_all_elements_located(self.RESULT_ROWS),
+                EC.visibility_of_element_located(self.NO_ROWS_PLACEHOLDER),
+            ))
+        except Exception:
+            self.wait.until(EC.presence_of_all_elements_located(self.RESULT_ROWS))
+        # If "No Records Found" is visible, fail explicitly
+        no_rows = self.driver.find_elements(*self.NO_ROWS_PLACEHOLDER)
+        if no_rows:
+            assert False, f"No results after search for: {expected_name}"
         rows = self.driver.find_elements(*self.RESULT_ROWS)
         combined_text = "\n".join(row.text for row in rows)
-        # Accept either full name match or first name presence for robustness
         tokens = [expected_name, expected_name.split(" ")[0]]
         assert any(token and token in combined_text for token in tokens), "Expected employee to appear in search results"
 
@@ -190,6 +221,33 @@ class OrangePIMPage:
     def assert_required_field_errors_present(self):
         errors = self.driver.find_elements(*self.FIELD_ERROR)
         assert errors, "Expected required field validation errors to be shown"
+        return self
+
+    def get_current_employee_id(self) -> str:
+        # On Personal Details: read the Employee Id value
+        self.wait.until(EC.visibility_of_element_located(self.PERSONAL_EMP_ID_INPUT))
+        return self.driver.find_element(*self.PERSONAL_EMP_ID_INPUT).get_attribute("value").strip()
+
+    def search_employee_by_id(self, emp_id: str):
+        self.wait.until(EC.visibility_of_element_located(self.ADD_BUTTON))
+        self.wait.until(EC.visibility_of_element_located(self.EMPLOYEE_ID_INPUT))
+        emp_input = self.driver.find_element(*self.EMPLOYEE_ID_INPUT)
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", emp_input)
+        except Exception:
+            pass
+        emp_input.clear()
+        emp_input.send_keys(emp_id)
+        self.wait.until(EC.element_to_be_clickable(self.SEARCH_BUTTON)).click()
+        self.wait.until(EC.any_of(
+            EC.presence_of_all_elements_located(self.RESULT_ROWS),
+            EC.visibility_of_element_located(self.NO_ROWS_PLACEHOLDER),
+        ))
+        return self
+
+    def assert_results_count_at_least(self, minimum: int = 1):
+        rows = self.driver.find_elements(*self.RESULT_ROWS)
+        assert len(rows) >= minimum, f"Expected at least {minimum} search result(s)"
         return self
 
 

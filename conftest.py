@@ -56,7 +56,15 @@ def pytest_runtest_makereport(item, call):
 
     if rep.when in ("setup", "call"):
         xfail = hasattr(rep, "wasxfail")
+        should_capture = False
+        # Capture on true failures
         if (rep.skipped and xfail) or (rep.failed and not xfail):
+            should_capture = True
+        # Also capture when a negative test PASSES (to show the error UI in report)
+        elif rep.passed and ("negative" in item.keywords):
+            should_capture = True
+
+        if should_capture:
             # Resolve driver from our fixture name
             drv = item.funcargs.get("browser", None)
             if drv is not None:

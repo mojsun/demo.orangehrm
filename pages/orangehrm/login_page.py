@@ -13,6 +13,7 @@ class OrangeLoginPage:
     SUBMIT = (By.CSS_SELECTOR, "button[type='submit']")
     DASHBOARD_HEADING = (By.XPATH, "//h6[normalize-space()='Dashboard']")
     ERROR_TOAST = (By.CSS_SELECTOR, "div.oxd-alert-content-text")
+    ERROR_ALERT = (By.CSS_SELECTOR, "div.oxd-alert.oxd-alert--error")
     FIELD_ERROR = (By.CSS_SELECTOR, "span.oxd-input-field-error-message")
     NAV_SIDEPANEL = (By.CSS_SELECTOR, "aside.oxd-sidepanel")
 
@@ -68,20 +69,40 @@ class OrangeLoginPage:
         )
 
     def assert_login_error(self):
-        # Accept either toast error or in-field 'Required' validation
+        # Accept either error alert, toast text, or in-field 'Required' validation
         try:
             self.wait.until(EC.any_of(
+                EC.visibility_of_element_located(self.ERROR_ALERT),
                 EC.visibility_of_element_located(self.ERROR_TOAST),
                 EC.visibility_of_element_located(self.FIELD_ERROR),
             ))
         except Exception:
-            self.wait.until(EC.visibility_of_element_located(self.ERROR_TOAST))
+            # Fall back to checking each individually
+            try:
+                self.wait.until(EC.visibility_of_element_located(self.ERROR_ALERT))
+            except Exception:
+                try:
+                    self.wait.until(EC.visibility_of_element_located(self.ERROR_TOAST))
+                except Exception:
+                    self.wait.until(EC.visibility_of_element_located(self.FIELD_ERROR))
+
+        # Prefer explicit error text from alert/toast
+        alert = self.driver.find_elements(*self.ERROR_ALERT)
+        if alert and alert[0].is_displayed():
+            # Try to find inner content text, else use container text
+            try:
+                txt = self.driver.find_element(*self.ERROR_TOAST).text.strip()
+            except Exception:
+                txt = alert[0].text.strip()
+            assert txt != "", "Expected an error message for invalid credentials"
+            return
 
         toast = self.driver.find_elements(*self.ERROR_TOAST)
         if toast and toast[0].is_displayed():
             assert toast[0].text.strip() != "", "Expected an error message for invalid credentials"
             return
-        # Otherwise field error
+
+        # Otherwise in-field validation messages
         field_errs = self.driver.find_elements(*self.FIELD_ERROR)
         assert field_errs and any(e.text.strip() for e in field_errs), "Expected validation error messages"
 

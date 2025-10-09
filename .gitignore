@@ -1,15 +1,34 @@
-# Python
+# 🧠 Python cache and compiled files
 __pycache__/
 *.py[cod]
 *.pyo
 .pytest_cache/
-.venv/
 
-# Reports & artifacts
+# 🧰 Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# 🧪 Reports & artifacts
 report.html
+*.html
+*.xml
+*.json
 artifacts/
 reports/
+output/
+logs/
 
-# OS
+# ⚙️ IDE settings
+.idea/
+.vscode/
+
+# 🔒 Environment / credentials
+.env
+*.env
+
+# 💻 OS files
 .DS_Store
+Thumbs.db
 

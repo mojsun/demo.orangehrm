@@ -9,6 +9,10 @@ End-to-end UI tests for the OrangeHRM demo app using Selenium WebDriver and pyte
 - HTML report with embedded screenshots on failure
 - Artifacts (screenshots + page HTML) saved per failing test
 
+
+[![Pytest HTML report summary](assets/report-summary.png)](https://mojsun.github.io/demo.orangehrm/pytest_html_report.html#dashboard)
+
+
 ### Quick start
 ```bash
 python3 -m venv .venv
@@ -65,4 +69,3 @@ MIT
 Mozhdeh Khorashahi © 2025. See `LICENSE` for terms.
 
 
-[![Pytest HTML report summary](assets/report-summary.png)](https://mojsun.github.io/demo.orangehrm/pytest_html_report.html#dashboard)

@@ -63,3 +63,6 @@ MIT
 
 ### Author
 Mozhdeh Khorashahi © 2025. See `LICENSE` for terms.
+
+
+[![Pytest HTML report summary](assets/report-summary.png)](https://mojsun.github.io/demo.orangehrm/pytest_html_report.html#dashboard)
